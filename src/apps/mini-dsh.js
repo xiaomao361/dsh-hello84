@@ -6,7 +6,7 @@ const CONFIG_KEY = 'minidsh.config.v1'
 export const DEFAULT_SIDECAR_CONFIG = {
   baseUrl: 'https://api.deepseek.com/v1',
   apiKey: '',
-  model: 'deepseek-chat',
+  model: 'deepseek-flash',
   proxyUrl: '',
 }
 
@@ -79,7 +79,7 @@ export async function runSidecarTurn({ config, messages, toolHandlers = {}, fetc
 
   for (let step = 0; step < 3; step++) {
     const payload = {
-      model: config.model || 'deepseek-chat',
+      model: config.model || 'deepseek-flash',
       messages: history,
       tools: SIDECAR_TOOLS,
       temperature: 0.4,

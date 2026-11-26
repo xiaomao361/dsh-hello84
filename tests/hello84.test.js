@@ -133,7 +133,7 @@ test('Mini DSH Sidecar executes OpenAI-compatible tool calls and returns final r
   }
 
   const res = await runSidecarTurn({
-    config: { baseUrl: 'https://api.deepseek.com/v1', apiKey: 'sk-test', model: 'deepseek-chat' },
+    config: { baseUrl: 'https://api.deepseek.com/v1', apiKey: 'sk-test', model: 'deepseek-flash' },
     messages: [{ role: 'user', content: '记个便签' }],
     toolHandlers: {
       write_note(args) { wrote = args; return { ok: true, page: 1 } },
