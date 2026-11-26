@@ -119,6 +119,12 @@ const ICONS = {
     <rect x="6" y="10" width="1" height="3" fill="currentColor"/>
     <rect x="5" y="11" width="3" height="1" fill="currentColor"/>
     <rect x="12" y="12" width="1" height="1" fill="currentColor"/>`,
+
+  // Retro 1-bit Terminal (solid screen with bright >_ prompt)
+  terminal: `
+    <path fill="currentColor" d="M1 2h14v12H1V2z"/>
+    <path fill="var(--h84-surface, #fff)" d="M3 5h1v1H3zm1 1h1v1H4zm1 1h1v1H5zm-1 1h1v1H4zm-1 1h1v1H3z"/>
+    <rect x="7" y="9" width="5" height="1" fill="var(--h84-surface, #fff)"/>`,
 }
 
 export function pixelIcon(doc, name, size = 16) {

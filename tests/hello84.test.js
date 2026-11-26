@@ -9,6 +9,7 @@ import { createAlarmStore, formatDuration } from '../src/apps/alarm.js'
 import { runSidecarTurn } from '../src/apps/mini-dsh.js'
 import { createMinesweeperGame } from '../src/apps/minesweeper.js'
 import { createInnerLifeEngine, isNoShareOutput, shareSimilarity } from '../src/innerlife.js'
+import { createTerminalEngine } from '../src/apps/terminal.js'
 import { mountHello84 } from '../src/desktop.js'
 
 function makeDom() {
@@ -234,4 +235,49 @@ test('InnerLife honors [NO_SHARE], dedup similarity, and model-backed proactive 
   assert.equal(il.getSnapshot().pending.length, 1)
 
   il.destroy()
+})
+
+test('Retro Terminal executes DSH and Hello 84 commands cleanly', async () => {
+  const win = makeDom()
+  let openedSession = null
+  let switchedMode = null
+  const bridge = createHostBridge(win, {
+    initialState: {
+      status: 'idle',
+      sessionId: 's1',
+      sessionTitle: 'Alpha',
+      sessions: [
+        { id: 's1', title: 'Alpha', status: 'idle' },
+        { id: 's2', title: 'Beta Deploy', status: 'waiting' },
+      ],
+    },
+    openSession: id => { openedSession = id },
+  })
+  const noteStore = createNotePadStore(win)
+  const alarmStore = createAlarmStore(win, bridge)
+  const term = createTerminalEngine({
+    win,
+    bridge,
+    noteStore,
+    alarmStore,
+    desktopApi: { applyScreenMode: m => { switchedMode = m } },
+  })
+
+  const ls = await term.execute('ls sessions')
+  assert.match(ls.output, /Beta Deploy/)
+
+  const cd = await term.execute('cd 2')
+  assert.equal(openedSession, 's2')
+  assert.match(cd.output, /Beta Deploy/)
+
+  await term.execute('draft quick check')
+  assert.equal(bridge.getHostDraft(), 'quick check')
+
+  await term.execute('note ship terminal')
+  assert.ok(noteStore.getSnapshot().pages.some(p => p.includes('ship terminal')))
+
+  await term.execute('mode amber')
+  assert.equal(switchedMode, 'amber')
+
+  alarmStore.destroy()
 })

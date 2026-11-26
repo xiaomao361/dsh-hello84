@@ -9,6 +9,7 @@ import { renderMacPaint } from './apps/macpaint.js'
 import { renderMinesweeper } from './apps/minesweeper.js'
 import { createInnerLifeEngine } from './innerlife.js'
 import { renderInnerLifeApp } from './apps/innerlife-app.js'
+import { renderTerminal } from './apps/terminal.js'
 
 const SCREEN_MODES = [
   { id: 'classic', label: 'Classic 1-bit' },
@@ -31,6 +32,7 @@ const IDLE_SCENES = ['happy', 'toaster', 'stars', 'clock']
 const APPS = [
   { id: 'mini-dsh', title: 'Mini DSH', icon: 'miniDsh', width: 372, height: 282 },
   { id: 'innerlife', title: 'InnerLife', icon: 'innerlife', width: 368, height: 282 },
+  { id: 'terminal', title: 'Terminal', icon: 'terminal', width: 376, height: 266 },
   { id: 'notepad', title: 'Note Pad', icon: 'notepad', width: 312, height: 242 },
   { id: 'floppy', title: 'Floppy', icon: 'floppy', width: 360, height: 270 },
   { id: 'alarm', title: 'Alarm', icon: 'alarm', width: 302, height: 234 },
@@ -452,11 +454,13 @@ export function mountHello84(win, bridge, cssText) {
       alarmStore,
       innerLife,
       openSidecarWithPrompt,
+      desktopApi: { openApp, applyScreenMode, applySound },
       getScreenMode: () => screenMode,
       notify,
     }
     if (appId === 'mini-dsh') instance = renderMiniDsh(doc, ctxArgs)
     else if (appId === 'innerlife') instance = renderInnerLifeApp(doc, ctxArgs)
+    else if (appId === 'terminal') instance = renderTerminal(doc, ctxArgs)
     else if (appId === 'notepad') instance = renderNotePad(doc, ctxArgs)
     else if (appId === 'floppy') instance = renderFloppyDisk(doc, ctxArgs)
     else if (appId === 'alarm') instance = renderAlarmClock(doc, ctxArgs)

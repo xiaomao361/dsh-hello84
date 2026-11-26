@@ -12,6 +12,7 @@
 - **Mini DSH（双模套娃客户端）**：
   - **零配置模式**：实时同步外部 DSH 会话列表与状态，点击切换主会话，终端直接填入或发送到外部输入框。
   - **配 Key 模式**：配置 DeepSeek / 任意 OpenAI 兼容 API，独立旁路对话不污染主上下文；支持一键抓取外部草稿/最近回复进行「润色 / 挑刺 / 翻译 / 总结」，并支持本地工具调用（写 Note Pad、设 Alarm、回填外部草稿）。
+- **Terminal（1984 复古命令行）**：反色像素终端，纯键盘操控 DSH 与小 Mac（`status` / `ls` / `cd` / `draft` / `send` / `ask` / `think` / `note` / `alarm` / `mode` / `export` / `hello`，支持 `↑/↓` 历史命令）。
 - **Note Pad（经典翻页便签）**：多页翻页便签，持久化到 `localStorage`，一键注入外部 DSH 输入框。
 - **Floppy Disk（3.5 寸软盘导出）**：一键导出外部当前会话为 Markdown，或渲染成 **1984 Macintosh 窗口风格 PNG 分享长图**（自动脱敏本机路径）。
 - **Alarm Clock（复古闹钟）**：番茄钟 / 倒计时 + 外部任务跑完 / 卡审批 / 出错时复古提示音提醒。

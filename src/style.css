@@ -840,6 +840,50 @@ button, input, textarea, select { font: inherit; color: inherit; }
   word-break: break-word;
 }
 
+/* --- Retro Terminal --- */
+.h84-term {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--h84-invert-bg);
+  color: var(--h84-invert-fg);
+  border: 1.5px solid var(--h84-fg);
+  padding: 6px;
+}
+.h84-term-out {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin-bottom: 5px;
+}
+.h84-term-line {
+  margin: 0 0 4px;
+  font: inherit;
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.h84-term-line.is-cmd { font-weight: 700; }
+.h84-term-line.is-sys { opacity: 0.78; font-size: 10px; }
+.h84-term-in {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border-top: 1px dotted currentColor;
+  padding-top: 4px;
+}
+.h84-term-prompt { font-weight: 700; font-size: 11px; }
+.h84-term-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 11px;
+  outline: none;
+}
+
 /* --- Note Pad (Classic lined sheet + dog-ear) --- */
 .h84-notepad { display: flex; flex-direction: column; height: 100%; }
 .h84-notepad-area {
