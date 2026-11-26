@@ -304,7 +304,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
 
 .h84-crt-screen {
   position: relative;
-  height: 376px;
+  height: 400px;
   border-radius: 7px;
   border: 2px solid #191612;
   background: var(--h84-bg);
@@ -417,17 +417,17 @@ button, input, textarea, select { font: inherit; color: inherit; }
 
 .h84-icons-col {
   position: absolute;
-  top: 8px;
+  top: 6px;
   right: 8px;
   display: grid;
   grid-template-columns: 1fr;
-  gap: 5px;
+  gap: 4px;
   z-index: 2;
 }
 
 .h84-desk-icon {
   width: 72px;
-  padding: 3px 2px;
+  padding: 2px;
   border: 1px solid transparent;
   background: transparent;
   display: flex;
@@ -446,8 +446,8 @@ button, input, textarea, select { font: inherit; color: inherit; }
 }
 
 .h84-desk-glyph {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   background: var(--h84-surface);
   border: 1.5px solid var(--h84-fg);
   box-shadow: 2px 2px 0 var(--h84-fg);
@@ -583,7 +583,9 @@ button, input, textarea, select { font: inherit; color: inherit; }
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
+  outline: none;
 }
+.h84-tab:focus-visible { outline: 1px dotted var(--h84-fg); outline-offset: -3px; }
 .h84-tab.is-active { background: var(--h84-invert-bg); color: var(--h84-invert-fg); }
 
 .h84-pane { display: flex; flex-direction: column; flex: 1; min-height: 0; }
@@ -603,21 +605,26 @@ button, input, textarea, select { font: inherit; color: inherit; }
 
 .h84-session-list {
   flex: 1;
-  overflow: auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
   border: 1.5px solid var(--h84-fg);
   background: var(--h84-bg);
   margin-bottom: 6px;
-  display: flex;
-  flex-direction: column;
+  display: block;
 }
 
 .h84-session-row {
+  display: block;
+  width: 100%;
+  flex-shrink: 0;
   border: none;
   border-bottom: 1px dotted var(--h84-muted);
   background: transparent;
   text-align: left;
-  padding: 4px 6px;
+  padding: 5px 7px;
   font-size: 11px;
+  line-height: 1.45;
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
