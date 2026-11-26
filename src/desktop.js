@@ -7,6 +7,8 @@ import { createAlarmStore, renderAlarmClock } from './apps/alarm.js'
 import { renderMiniDsh } from './apps/mini-dsh.js'
 import { renderMacPaint } from './apps/macpaint.js'
 import { renderMinesweeper } from './apps/minesweeper.js'
+import { createInnerLifeEngine } from './innerlife.js'
+import { renderInnerLifeApp } from './apps/innerlife-app.js'
 
 const SCREEN_MODES = [
   { id: 'classic', label: 'Classic 1-bit' },
@@ -21,23 +23,25 @@ const STATUS_META = {
   tool: { icon: 'floppy', label: 'DISK', face: 'tool' },
   busy: { icon: 'wristwatch', label: 'BUSY', face: 'think' },
   waiting: { icon: 'happyMac', label: 'APPROVE!', face: 'wait' },
-  error: { icon: 'sadMac', label: 'SAD MAC', face: 'error' },
+  error: { icon: 'sadMac', label: '0F0064', face: 'error' },
 }
 
+const IDLE_SCENES = ['happy', 'toaster', 'stars', 'clock']
+
 const APPS = [
-  { id: 'mini-dsh', title: 'Mini DSH', icon: 'miniDsh', width: 370, height: 270 },
-  { id: 'notepad', title: 'Note Pad', icon: 'notepad', width: 310, height: 235 },
-  { id: 'floppy', title: 'Floppy Disk', icon: 'floppy', width: 360, height: 265 },
-  { id: 'alarm', title: 'Alarm Clock', icon: 'alarm', width: 300, height: 230 },
-  { id: 'macpaint', title: 'MacPaint', icon: 'macpaint', width: 356, height: 256 },
-  { id: 'minesweeper', title: 'Minesweeper', icon: 'minesweeper', width: 252, height: 276 },
+  { id: 'mini-dsh', title: 'Mini DSH', icon: 'miniDsh', width: 372, height: 282 },
+  { id: 'innerlife', title: 'InnerLife', icon: 'innerlife', width: 368, height: 282 },
+  { id: 'notepad', title: 'Note Pad', icon: 'notepad', width: 312, height: 242 },
+  { id: 'floppy', title: 'Floppy', icon: 'floppy', width: 360, height: 270 },
+  { id: 'alarm', title: 'Alarm', icon: 'alarm', width: 302, height: 234 },
+  { id: 'macpaint', title: 'MacPaint', icon: 'macpaint', width: 356, height: 260 },
+  { id: 'minesweeper', title: 'Mines', icon: 'minesweeper', width: 252, height: 276 },
 ]
 
 export function mountHello84(win, bridge, cssText) {
   const doc = win.document
   const prefs = getPrefs(win)
 
-  // Mount in Shadow DOM so host DSH themes never collide with Hello '84
   const host = doc.createElement('div')
   host.id = 'dsh-hello84-host'
   host.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:2147483000;'
@@ -55,17 +59,25 @@ export function mountHello84(win, bridge, cssText) {
   if (!SCREEN_MODES.some(m => m.id === screenMode)) screenMode = 'classic'
   let soundOn = prefs.get('sound', false) === true
   let expanded = false
-  let docked = prefs.get('docked', null) // null | 'left' | 'right'
+  let docked = prefs.get('docked', null)
   let hasBooted = prefs.get('skipBoot', false) === true
   let zCounter = 10
+  let idleSceneIndex = 0
+  let activeBubbleShare = null
   const openWindows = new Map()
 
   const noteStore = createNotePadStore(win)
   const alarmStore = createAlarmStore(win, bridge, (msg, kind) => {
     showAlertBanner(msg, kind)
   })
+  const innerLife = createInnerLifeEngine(win, bridge, {
+    noteStore,
+    onProactiveShare(candidate) {
+      showThoughtBubble(candidate)
+    },
+  })
 
-  // --- Mini Standby Mac ---
+  // --- Mini Standby Mac + Proactive Thought Bubble ---
   const miniWrap = doc.createElement('div')
   miniWrap.className = 'h84-mini-wrap'
   const savedPos = prefs.get('miniPos')
@@ -78,9 +90,22 @@ export function mountHello84(win, bridge, cssText) {
   }
 
   miniWrap.innerHTML = `
+    <div class="h84-bubble" data-bubble hidden>
+      <div class="h84-bubble-head">
+        <span class="h84-bubble-tag" data-bubble-tag> InnerLife</span>
+        <button type="button" class="h84-bubble-x" data-bact="dismiss" aria-label="关闭气泡">×</button>
+      </div>
+      <div class="h84-bubble-text" data-bubble-text></div>
+      <div class="h84-bubble-acts">
+        <button type="button" class="h84-btn-sm" data-bact="fill">填入主框</button>
+        <button type="button" class="h84-btn-sm" data-bact="chat">聊聊</button>
+        <button type="button" class="h84-btn-sm" data-bact="note">存便签</button>
+      </div>
+    </div>
     <div class="h84-mini-mac" role="button" tabindex="0" aria-label="展开 Hello '84 复古 Macintosh">
       <div class="h84-mini-bezel">
         <div class="h84-mini-crt" data-mini-crt>
+          <span class="h84-mini-badge" data-mini-badge hidden>0</span>
           <span class="h84-mini-glyph" data-mini-glyph></span>
           <span class="h84-mini-text" data-mini-text>IDLE</span>
         </div>
@@ -169,9 +194,14 @@ export function mountHello84(win, bridge, cssText) {
   stage.append(macWrap)
 
   const miniMacEl = miniWrap.querySelector('.h84-mini-mac')
+  const miniCrtEl = miniWrap.querySelector('[data-mini-crt]')
   const miniGlyphEl = miniWrap.querySelector('[data-mini-glyph]')
   const miniTextEl = miniWrap.querySelector('[data-mini-text]')
+  const miniBadgeEl = miniWrap.querySelector('[data-mini-badge]')
   const miniLedEl = miniWrap.querySelector('[data-mini-led]')
+  const bubbleEl = miniWrap.querySelector('[data-bubble]')
+  const bubbleTagEl = miniWrap.querySelector('[data-bubble-tag]')
+  const bubbleTextEl = miniWrap.querySelector('[data-bubble-text]')
   const mainLedEl = macWrap.querySelector('[data-main-led]')
   const hostPillEl = macWrap.querySelector('[data-host-pill]')
   const menuClockEl = macWrap.querySelector('[data-menu-clock]')
@@ -212,6 +242,58 @@ export function mountHello84(win, bridge, cssText) {
     }
   }
 
+  function showThoughtBubble(candidate) {
+    if (!candidate) return
+    activeBubbleShare = candidate
+    bubbleTagEl.textContent = candidate.generationSource === 'model' ? ' InnerLife · AI' : ' InnerLife'
+    bubbleTextEl.textContent = candidate.text
+    bubbleEl.hidden = false
+    sound.happy(win)
+    if (expanded) {
+      notify(`InnerLife 新思绪：${candidate.text.slice(0, 32)}…`)
+    }
+  }
+
+  function hideThoughtBubble() {
+    activeBubbleShare = null
+    bubbleEl.hidden = true
+  }
+
+  function openSidecarWithPrompt(promptText) {
+    setExpanded(true)
+    openApp('mini-dsh')
+    const entry = openWindows.get('mini-dsh')
+    entry?.api?.switchToSidecar?.(promptText)
+  }
+
+  bubbleEl.addEventListener('click', e => {
+    const btn = e.target.closest('[data-bact]')
+    if (!btn || !activeBubbleShare) return
+    e.stopPropagation()
+    sound.click(win)
+    const share = activeBubbleShare
+    const act = btn.dataset.bact
+    if (act === 'dismiss') {
+      innerLife.dismiss(share.id)
+      hideThoughtBubble()
+    } else if (act === 'fill') {
+      const ok = bridge.fillHostDraft(share.text, { replace: false })
+      if (ok) innerLife.markUsed(share.id)
+      hideThoughtBubble()
+      notify(ok ? '已填入外部 DSH 输入框' : '未找到外部输入框')
+    } else if (act === 'note') {
+      noteStore.appendNote('InnerLife', share.text)
+      innerLife.markUsed(share.id)
+      hideThoughtBubble()
+      setExpanded(true)
+      openApp('notepad')
+    } else if (act === 'chat') {
+      innerLife.markUsed(share.id)
+      hideThoughtBubble()
+      openSidecarWithPrompt(`关于你刚才琢磨的这点：「${share.text}」——展开说说具体怎么改？`)
+    }
+  })
+
   macWrap.querySelector('[data-alert-ok]').addEventListener('click', () => {
     sound.click(win)
     alertEl.hidden = true
@@ -239,11 +321,48 @@ export function mountHello84(win, bridge, cssText) {
     miniWrap.dataset.docked = side || ''
   }
 
+  // --- Living Mini Mac CRT Renderer ---
+  function renderMiniScreen(snap) {
+    const status = snap.status || 'idle'
+    const meta = STATUS_META[status] || STATUS_META.idle
+    miniCrtEl.dataset.scene = status === 'idle' ? IDLE_SCENES[idleSceneIndex] : status
+
+    if (status === 'idle') {
+      const scene = IDLE_SCENES[idleSceneIndex]
+      if (scene === 'toaster') {
+        miniGlyphEl.replaceChildren(pixelIcon(doc, 'toaster', 22))
+        miniTextEl.textContent = 'TOAST'
+      } else if (scene === 'stars') {
+        miniGlyphEl.replaceChildren(pixelIcon(doc, 'stars', 22))
+        miniTextEl.textContent = '1984'
+      } else if (scene === 'clock') {
+        miniGlyphEl.replaceChildren()
+        const clk = doc.createElement('span')
+        clk.className = 'h84-mini-clock'
+        clk.textContent = new Date().toTimeString().slice(0, 5)
+        miniGlyphEl.append(clk)
+        miniTextEl.textContent = 'READY'
+      } else {
+        miniGlyphEl.replaceChildren(pixelIcon(doc, 'happyMac', 22))
+        miniTextEl.textContent = 'IDLE'
+      }
+    } else if (status === 'working') {
+      miniGlyphEl.replaceChildren()
+      const bars = doc.createElement('span')
+      bars.className = 'h84-code-bars'
+      bars.innerHTML = '<i></i><i></i><i></i>'
+      miniGlyphEl.append(bars)
+      miniTextEl.textContent = 'WRITE'
+    } else {
+      miniGlyphEl.replaceChildren(pixelIcon(doc, meta.icon, 22))
+      miniTextEl.textContent = meta.label
+    }
+  }
+
   function applyHostStatus(snap) {
     const meta = STATUS_META[snap.status] || STATUS_META.idle
-    miniGlyphEl.replaceChildren(pixelIcon(doc, meta.icon, 20))
-    miniTextEl.textContent = meta.label
     hostPillEl.textContent = meta.label
+    renderMiniScreen(snap)
     const diskActive = snap.status === 'tool' || snap.status === 'working'
     miniLedEl.classList.toggle('is-lit', diskActive)
     mainLedEl.classList.toggle('is-lit', diskActive)
@@ -255,6 +374,21 @@ export function mountHello84(win, bridge, cssText) {
     }
   }
 
+  const unsubInnerLife = innerLife.subscribe(ilSnap => {
+    const n = ilSnap.pending.length
+    miniBadgeEl.textContent = String(n)
+    miniBadgeEl.hidden = n === 0
+  })
+
+  // Rotate idle screensaver every 9 seconds
+  const sceneTimer = win.setInterval(() => {
+    const snap = bridge.getSnapshot()
+    if (snap.status === 'idle') {
+      idleSceneIndex = (idleSceneIndex + 1) % IDLE_SCENES.length
+      renderMiniScreen(snap)
+    }
+  }, 9000)
+
   // --- Boot Ritual ---
   let bootTimer = null
   function playBoot(force = false) {
@@ -262,7 +396,6 @@ export function mountHello84(win, bridge, cssText) {
     hasBooted = true
     bootEl.hidden = false
     sound.startup(win)
-    // Restart SVG animation
     bootSvgSlot.replaceChildren(helloBootSvg(doc))
     win.clearTimeout(bootTimer)
     bootTimer = win.setTimeout(() => { bootEl.hidden = true }, 2300)
@@ -295,11 +428,11 @@ export function mountHello84(win, bridge, cssText) {
     const winEl = doc.createElement('section')
     winEl.className = 'h84-win'
     winEl.dataset.app = appId
-    const offset = (openWindows.size % 5) * 18
+    const offset = (openWindows.size % 5) * 16
     winEl.style.width = `${def.width}px`
     winEl.style.height = `${def.height}px`
-    winEl.style.left = `${16 + offset}px`
-    winEl.style.top = `${14 + offset}px`
+    winEl.style.left = `${12 + offset}px`
+    winEl.style.top = `${12 + offset}px`
 
     const bar = doc.createElement('header')
     bar.className = 'h84-win-bar'
@@ -312,8 +445,18 @@ export function mountHello84(win, bridge, cssText) {
     body.className = 'h84-win-body'
 
     let instance
-    const ctxArgs = { win, bridge, noteStore, alarmStore, getScreenMode: () => screenMode, notify }
+    const ctxArgs = {
+      win,
+      bridge,
+      noteStore,
+      alarmStore,
+      innerLife,
+      openSidecarWithPrompt,
+      getScreenMode: () => screenMode,
+      notify,
+    }
     if (appId === 'mini-dsh') instance = renderMiniDsh(doc, ctxArgs)
+    else if (appId === 'innerlife') instance = renderInnerLifeApp(doc, ctxArgs)
     else if (appId === 'notepad') instance = renderNotePad(doc, ctxArgs)
     else if (appId === 'floppy') instance = renderFloppyDisk(doc, ctxArgs)
     else if (appId === 'alarm') instance = renderAlarmClock(doc, ctxArgs)
@@ -323,7 +466,7 @@ export function mountHello84(win, bridge, cssText) {
     if (instance?.element) body.append(instance.element)
     winEl.append(bar, body)
     windowsLayerEl.append(winEl)
-    openWindows.set(appId, { el: winEl, destroy: instance?.destroy })
+    openWindows.set(appId, { el: winEl, api: instance, destroy: instance?.destroy })
     focusWindow(winEl)
 
     winEl.addEventListener('pointerdown', () => focusWindow(winEl))
@@ -333,7 +476,6 @@ export function mountHello84(win, bridge, cssText) {
       closeApp(appId)
     })
 
-    // Drag inside desktop
     bar.addEventListener('pointerdown', e => {
       if (e.target.closest('.h84-win-close')) return
       const startX = e.clientX
@@ -371,7 +513,7 @@ export function mountHello84(win, bridge, cssText) {
     btn.dataset.openApp = app.id
     const glyph = doc.createElement('span')
     glyph.className = 'h84-desk-glyph'
-    glyph.append(pixelIcon(doc, app.icon, 24))
+    glyph.append(pixelIcon(doc, app.icon, 20))
     const label = doc.createElement('span')
     label.className = 'h84-desk-label'
     label.textContent = app.title
@@ -384,7 +526,7 @@ export function mountHello84(win, bridge, cssText) {
   let openMenu = null
   const MENUS = {
     apple: () => [
-      { label: "About Hello '84…", run: () => showAlertBanner("Hello '84 v0.1 — 1984 Macintosh 复古挂件，兼容任意 DSH 主题。", 'info') },
+      { label: "About Hello '84…", run: () => showAlertBanner("Hello '84 v0.2 — 1984 Macintosh + InnerLife 伴生副脑。", 'info') },
       { label: '重播 hello. 开机动画', run: () => playBoot(true) },
       { label: prefs.get('skipBoot', false) ? '✓ 跳过首次开机动画' : '跳过首次开机动画', run: () => {
         const next = !prefs.get('skipBoot', false)
@@ -401,6 +543,7 @@ export function mountHello84(win, bridge, cssText) {
       run: () => { applyScreenMode(m.id); notify(`屏幕模式：${m.label}`) },
     })),
     special: () => [
+      { label: 'InnerLife · 现在琢磨一下', run: () => { openApp('innerlife'); innerLife.tick({ manual: true, reason: 'menu' }) } },
       { label: soundOn ? '✓ 复古提示音 (开)' : '复古提示音 (静音)', run: () => { applySound(!soundOn); notify(soundOn ? '已开启复古提示音' : '已静音') } },
       { label: '贴边收起 (右侧)', run: () => { setExpanded(false); applyDocked('right') } },
       { label: '贴边收起 (左侧)', run: () => { setExpanded(false); applyDocked('left') } },
@@ -537,6 +680,9 @@ export function mountHello84(win, bridge, cssText) {
   // --- Clock ---
   function tickClock() {
     menuClockEl.textContent = new Date().toTimeString().slice(0, 5)
+    if (bridge.getSnapshot().status === 'idle' && IDLE_SCENES[idleSceneIndex] === 'clock') {
+      renderMiniScreen(bridge.getSnapshot())
+    }
   }
   tickClock()
   const clockTimer = win.setInterval(tickClock, 15000)
@@ -551,6 +697,7 @@ export function mountHello84(win, bridge, cssText) {
   return {
     host,
     shadow,
+    innerLife,
     setExpanded,
     openApp,
     closeApp,
@@ -558,9 +705,12 @@ export function mountHello84(win, bridge, cssText) {
     getScreenMode: () => screenMode,
     destroy() {
       win.clearInterval(clockTimer)
+      win.clearInterval(sceneTimer)
       win.clearTimeout(toastTimer)
       win.clearTimeout(bootTimer)
       unsubBridge()
+      unsubInnerLife()
+      innerLife.destroy()
       alarmStore.destroy()
       for (const id of [...openWindows.keys()]) closeApp(id)
       host.remove()

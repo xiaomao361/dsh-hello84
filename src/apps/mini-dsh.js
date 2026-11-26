@@ -388,5 +388,15 @@ export function renderMiniDsh(doc, { win, bridge, noteStore, alarmStore, notify 
     }
   })
 
-  return { element: root, destroy: unsub }
+  function switchToSidecar(promptText = '') {
+    activeTab = 'sidecar'
+    for (const b of root.querySelectorAll('[data-tab]')) b.classList.toggle('is-active', b.dataset.tab === activeTab)
+    for (const p of root.querySelectorAll('[data-pane]')) p.hidden = p.dataset.pane !== activeTab
+    if (promptText) {
+      sidecarInput.value = promptText
+      sidecarInput.focus()
+    }
+  }
+
+  return { element: root, switchToSidecar, destroy: unsub }
 }

@@ -8,6 +8,7 @@ import { formatConversationMarkdown } from '../src/apps/floppy.js'
 import { createAlarmStore, formatDuration } from '../src/apps/alarm.js'
 import { runSidecarTurn } from '../src/apps/mini-dsh.js'
 import { createMinesweeperGame } from '../src/apps/minesweeper.js'
+import { createInnerLifeEngine, isNoShareOutput, shareSimilarity } from '../src/innerlife.js'
 import { mountHello84 } from '../src/desktop.js'
 
 function makeDom() {
@@ -173,9 +174,64 @@ test('mountHello84 mounts in Shadow DOM, switches screen modes, and opens apps c
   widget.applyScreenMode('green')
   assert.equal(widget.getScreenMode(), 'green')
   widget.openApp('notepad')
+  widget.openApp('innerlife')
   widget.openApp('minesweeper')
   assert.ok(widget.shadow.querySelector('[data-app="notepad"]'))
+  assert.ok(widget.shadow.querySelector('[data-app="innerlife"]'))
   assert.ok(widget.shadow.querySelector('[data-app="minesweeper"]'))
   widget.destroy()
   assert.equal(win.document.getElementById('dsh-hello84-host'), null)
+})
+
+test('InnerLife honors [NO_SHARE], dedup similarity, and model-backed proactive shares', async () => {
+  assert.equal(isNoShareOutput('[NO_SHARE]'), true)
+  assert.equal(isNoShareOutput('检查一下边界条件'), false)
+  assert.ok(shareSimilarity('刚才修改了接口参数校验逻辑，建议补个空值单测。', '刚才修改了接口参数校验逻辑，建议补个空值单测验证。') >= 0.58)
+
+  const win = makeDom()
+  const bridge = createHostBridge(win, { initialState: { status: 'idle', sessionId: 's1', sessionTitle: 'API 重构' } })
+  const shared = []
+  let callIndex = 0
+  const fakeFetch = async () => {
+    callIndex++
+    const content = callIndex === 1
+      ? '[NO_SHARE]'
+      : '刚才改了接口参数校验，别忘了把空数组和超时重试的边界单测一起补上。'
+    return {
+      ok: true,
+      async json() { return { choices: [{ message: { content } }] } },
+    }
+  }
+
+  // Configure API key so model path runs
+  win.localStorage.setItem('dsh-hello84.minidsh.config.v1', JSON.stringify({
+    baseUrl: 'https://api.deepseek.com/v1',
+    apiKey: 'sk-test',
+    model: 'deepseek-flash',
+  }))
+
+  const il = createInnerLifeEngine(win, bridge, {
+    onProactiveShare: item => shared.push(item),
+    fetchImpl: fakeFetch,
+  })
+
+  il.pushInbox('afterthought', '改完 API 参数校验')
+  const r1 = await il.tick({ manual: true })
+  assert.equal(r1.outcome, 'no_share')
+  assert.equal(shared.length, 0)
+
+  il.pushInbox('afterthought', '改完 API 参数校验，准备提交')
+  const r2 = await il.tick({ manual: true })
+  assert.equal(r2.outcome, 'shared')
+  assert.equal(shared.length, 1)
+  assert.equal(il.getSnapshot().pending.length, 1)
+
+  // Duplicate suppression on non-manual tick
+  il.setConfig({ cooldownMinutes: 0 })
+  il.pushInbox('afterthought', '再次确认参数校验')
+  const r3 = await il.tick({ manual: false })
+  assert.equal(r3.outcome, 'dedup')
+  assert.equal(il.getSnapshot().pending.length, 1)
+
+  il.destroy()
 })

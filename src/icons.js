@@ -93,6 +93,32 @@ const ICONS = {
   soundOff: `
     <path fill="currentColor" d="M2 6h3l3-3v10l-3-3H2V6z"/>
     <path fill="currentColor" d="M10 6h1v1h1v1h-1v1h-1V8h1V7h-1V6zm3 0h1v1h-1v1h1v1h-1V8h-1V7h1V6z"/>`,
+
+  // InnerLife thought-cloud pixel icon
+  innerlife: `
+    <path fill="currentColor" d="M5 2h6v1h2v1h1v4h-1v1h-2v1H5V9H3V8H2V4h1V3h2V2zm0 1v1H3v4h2v1h6V8h2V4h-2V3H5z"/>
+    <rect x="6" y="5" width="1" height="2" fill="currentColor"/>
+    <rect x="9" y="5" width="1" height="2" fill="currentColor"/>
+    <rect x="4" y="11" width="2" height="2" fill="currentColor"/>
+    <rect x="2" y="13" width="2" height="2" fill="currentColor"/>`,
+
+  // Classic 1984 Flying Toaster pixel icon
+  toaster: `
+    <path fill="currentColor" d="M1 4h4v1H3v1h2v1H2V6H1V4zm10 0h4v2h-1v1h-3V6h2V5h-2V4z"/>
+    <path fill="currentColor" d="M5 5h6v1h1v6H4V6h1V5zm0 1v5h6V6H5z"/>
+    <rect x="6" y="3" width="4" height="2" fill="currentColor"/>
+    <rect x="6" y="8" width="1" height="2" fill="currentColor"/>
+    <rect x="9" y="8" width="1" height="2" fill="currentColor"/>`,
+
+  // Classic pixel starfield icon
+  stars: `
+    <rect x="3" y="2" width="1" height="3" fill="currentColor"/>
+    <rect x="2" y="3" width="3" height="1" fill="currentColor"/>
+    <rect x="11" y="4" width="1" height="5" fill="currentColor"/>
+    <rect x="9" y="6" width="5" height="1" fill="currentColor"/>
+    <rect x="6" y="10" width="1" height="3" fill="currentColor"/>
+    <rect x="5" y="11" width="3" height="1" fill="currentColor"/>
+    <rect x="12" y="12" width="1" height="1" fill="currentColor"/>`,
 }
 
 export function pixelIcon(doc, name, size = 16) {

@@ -137,6 +137,10 @@ function mountPreview({ createHostBridge, mountHello84 }, css) {
     open = !open
     widget.setExpanded(open)
   })
+  get('tick-il-btn').addEventListener('click', () => {
+    widget.innerLife.pushInbox('afterthought', '刚才完成了 Hello 84 的 Shadow DOM 隔离测试与样式修复。', sessions.get(currentId)?.title)
+    widget.innerLife.tick({ manual: true, reason: 'preview' })
+  })
 }
 
 const [css, shell] = await Promise.all([
