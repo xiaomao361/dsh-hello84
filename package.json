@@ -1,0 +1,60 @@
+{
+  "name": "dsh-hello84",
+  "version": "0.1.0",
+  "description": "Hello '84（你好 84）：在 DeepSeek Harness 角落养一台活着的 1984 Macintosh，支持零配置宿主状态联动、Mini DSH 副脑、翻页便签、软盘导出与复古小工具。",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xiaomao361/dsh-hello84.git"
+  },
+  "homepage": "https://github.com/xiaomao361/dsh-hello84#readme",
+  "bugs": "https://github.com/xiaomao361/dsh-hello84/issues",
+  "main": "./index.js",
+  "icon": "icon.png",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json",
+    "./icon": "./icon.png"
+  },
+  "files": [
+    "index.js",
+    "lib/client.js",
+    "icon.png",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-chat"
+      ]
+    }
+  },
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "macintosh",
+    "retro",
+    "widget",
+    "sidecar"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "npm run build && node --test",
+    "prepare": "npm run build",
+    "preview": "node scripts/preview.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.27.3",
+    "jsdom": "26.1.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  }
+}

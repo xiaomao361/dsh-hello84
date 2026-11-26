@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hello '84 · DSH 离线预览</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --rail: #eceff4;
+      --card: #ffffff;
+      --fg: #18202c;
+      --muted: #5a6578;
+      --border: #d5dce6;
+      --accent: #2563eb;
+    }
+    body[data-dark="1"] {
+      --bg: #0f141c;
+      --rail: #161d28;
+      --card: #1b2432;
+      --fg: #e6edf7;
+      --muted: #8ea0ba;
+      --border: #2a364a;
+      --accent: #60a5fa;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      height: 100vh;
+      display: grid;
+      grid-template-columns: 250px 1fr;
+    }
+    aside {
+      background: var(--rail);
+      border-right: 1px solid var(--border);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    h1 { font-size: 14px; margin: 0; }
+    .sub { font-size: 12px; color: var(--muted); }
+    .sessions { display: flex; flex-direction: column; gap: 4px; flex: 1; overflow: auto; }
+    .sessions button {
+      text-align: left;
+      border: 1px solid transparent;
+      background: transparent;
+      color: inherit;
+      padding: 7px 9px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .sessions button[aria-selected="true"] {
+      background: var(--card);
+      border-color: var(--border);
+      font-weight: 600;
+    }
+    .sim-box {
+      border-top: 1px solid var(--border);
+      padding-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 12px;
+    }
+    .sim-box label { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .sim-box select {
+      background: var(--card);
+      color: var(--fg);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 3px 6px;
+    }
+    main {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      min-width: 0;
+    }
+    .topbar {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card);
+    }
+    .thread {
+      flex: 1;
+      overflow: auto;
+      padding: 20px;
+      max-width: 780px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    .msg {
+      padding: 10px 14px;
+      border-radius: 10px;
+      margin-bottom: 12px;
+      line-height: 1.55;
+      font-size: 14px;
+      white-space: pre-wrap;
+    }
+    .msg-user { background: var(--rail); border: 1px solid var(--border); }
+    .msg-assistant { background: var(--card); border: 1px solid var(--border); }
+    .composer-wrap {
+      border-top: 1px solid var(--border);
+      padding: 12px 20px;
+      background: var(--card);
+    }
+    #composer {
+      max-width: 780px;
+      margin: 0 auto;
+      display: flex;
+      gap: 8px;
+    }
+    #draft {
+      flex: 1;
+      resize: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      background: var(--bg);
+      color: var(--fg);
+      font: inherit;
+      font-size: 13px;
+    }
+    #send {
+      padding: 0 16px;
+      border-radius: 8px;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <aside>
+    <div>
+      <h1>DeepSeek Harness (Mock)</h1>
+      <div class="sub">右下角可唤醒 Hello '84 复古 Mac</div>
+    </div>
+    <div class="sessions" id="session-list"></div>
+    <div class="sim-box">
+      <label>宿主主题
+        <select id="host-theme">
+          <option value="0">浅色默认</option>
+          <option value="1">深色模式</option>
+        </select>
+      </label>
+      <label>模拟宿主状态
+        <select id="host-status">
+          <option value="idle">待机 (idle)</option>
+          <option value="thinking">思考 (thinking)</option>
+          <option value="working">输出中 (working)</option>
+          <option value="tool">调用工具 (tool)</option>
+          <option value="waiting">等待审批 (waiting)</option>
+          <option value="error">出错 (error)</option>
+        </select>
+      </label>
+      <button type="button" id="open-mac-btn" style="padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:inherit;cursor:pointer;">展开 / 收起 Hello '84</button>
+    </div>
+  </aside>
+  <main data-slot="main.conversation">
+    <header class="topbar">
+      <strong id="chat-title">DSH 离线预览会话</strong>
+      <span class="sub" id="chat-status-badge">状态：idle</span>
+    </header>
+    <div class="thread" data-conversation-content id="thread"></div>
+    <div class="composer-wrap">
+      <form id="composer" data-composer-card>
+        <textarea id="draft" data-composer-input rows="2" placeholder="输入发给模拟宿主 DSH 的消息，或在 Hello '84 里一键注入草稿…"></textarea>
+        <button id="send" type="submit">发送</button>
+      </form>
+    </div>
+  </main>
+  <!-- client-script -->
+</body>
+</html>
